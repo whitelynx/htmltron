@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Use `greadlink` if available, as it should support `-f`.
+readlink="$(which greadlink 2>/dev/null || which readlink)"
+
+# Find the root of the `htmltron` repo.
+script_path="$0"
+if "$readlink" -f "$script_path" >/dev/null 2>&1; then
+	script_dir="$(dirname "$("$readlink" -f "$script_path")")"
+else
+	# `readlink` doesn't support the `-f` option (this happens with Mac OS's built-in `readlink`); emulate it:
+	# First, resolve `script_path` itself until it's no longer a symlink.
+	while "$readlink" "$script_path" >/dev/null; do
+		script_path="$("$readlink" "$script_path")"
+	done
+	# Then, use `pwd` to dereference any symlinks in the containing directory.
+	script_dir="$(cd "$(dirname "$script_path")" && pwd)"
+fi
+
+exec $script_dir/node_modules/.bin/electron $script_dir/dist/boot.js "$@"
